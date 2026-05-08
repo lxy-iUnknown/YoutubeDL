@@ -1,0 +1,1 @@
+# Requirements: yt-dlp, pathvalidate
