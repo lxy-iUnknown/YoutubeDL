@@ -1,27 +1,15 @@
 import subprocess
+import typing
 
 from common.default import DEFAULT
 from common.input_util import StrListOption, IntOption
 from youtube.util import with_default
 
 
-class YTDLPResult:
-    def __init__(self, process):
-        self.__process = process
-
-    @property
-    def stdout(self):
-        return self.__process.stdout
-
-    @property
-    def stdout_str(self):
-        return self.__process.stdout.decode('utf-8').strip()
-
-
 class YTDLPOptions:
     _DEFAULT = DEFAULT
 
-    def __init__(self, *args):
+    def __init__(self, *args: str):
         self._options = list(args)
 
     @classmethod
@@ -75,22 +63,25 @@ class YTDLPOptions:
         return with_default(cls, cls.__get_default_options)
 
 
-def __run_yt_dlp(*options: str, capture_stdout=False):
+@typing.overload
+def run_yt_dlp(options: YTDLPOptions, capture_stdout: typing.Literal[False] = False) -> None:
+    ...
+
+
+@typing.overload
+def run_yt_dlp(options: YTDLPOptions, capture_stdout: typing.Literal[True] = True) -> str:
+    ...
+
+
+def run_yt_dlp(options: YTDLPOptions, capture_stdout: typing.Literal[True, False] = False):
     process = subprocess.run(
-        ('yt-dlp', '--encoding', 'utf-8') + options,
+        ['yt-dlp', '--encoding', 'utf-8'] + options.raw,
         stdout=subprocess.PIPE if capture_stdout else None,
         check=True,
     )
-    return YTDLPResult(process)
+    if capture_stdout:
+        return process.stdout.decode('utf-8').strip()
+    return None
 
 
-def __print_yt_dlp_version():
-    result = __run_yt_dlp('--version', capture_stdout=True)
-    print(f'YT-DLP version: {result.stdout_str}')
-
-
-__print_yt_dlp_version()
-
-
-def run_yt_dlp(options: YTDLPOptions, capture_stdout=False):
-    return __run_yt_dlp(*options.raw, capture_stdout=capture_stdout)
+print(f'YT-DLP version: {run_yt_dlp(YTDLPOptions('--version'), capture_stdout=True)}')

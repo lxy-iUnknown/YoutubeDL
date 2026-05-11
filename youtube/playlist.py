@@ -33,7 +33,7 @@ class __DumpPlayListExtractor(OneshotExecutor):
             'url=%(webpage_url)s',
             self._url
         )
-        stdout = run_yt_dlp(options, capture_stdout=True).stdout_str
+        stdout = run_yt_dlp(options, capture_stdout=True)
         # noinspection PyUnresolvedReferences
         title = self.__TITLE_RE.search(stdout).group(1)
         urls = self.__URL_RE.findall(stdout)
