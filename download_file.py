@@ -18,17 +18,13 @@ class PathOption(Option[pathlib.Path]):
             return p
         raise ValueError(f'{self._name} "{value}" does not exist')
 
-    @staticmethod
-    def show():
-        return PathOption().result()
-
 
 class MainExecutor(OneshotExecutor):
     def _execute(self):
         def is_valid_line(line: str):
             return len(line) != 0 and not line.startswith('#')
 
-        download_file = PathOption.show()
+        download_file = PathOption().result()
         with open(download_file, 'r', encoding='utf-8') as f:
             urls = list(filter(is_valid_line, map(str.strip, f)))
             download(urls, download_file.stem)
