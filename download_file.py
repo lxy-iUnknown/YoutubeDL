@@ -1,9 +1,9 @@
 import contextlib
 import pathlib
 
-from util.input_util import Option
-from util.path_util import ROOT_PATH
-from util.safe_execute import OneshotExecutor
+from common.input_util import Option
+from common.path_util import ROOT_PATH
+from common.safe_execute import OneshotExecutor
 from youtube.download import download
 
 
@@ -30,7 +30,7 @@ class MainExecutor(OneshotExecutor):
 
         download_file = PathOption.show()
         with open(download_file, 'r', encoding='utf-8') as f:
-            urls = filter(is_valid_line, map(str.strip, f))
+            urls = list(filter(is_valid_line, map(str.strip, f)))
             download(urls, download_file.stem)
 
 

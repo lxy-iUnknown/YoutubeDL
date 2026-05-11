@@ -1,5 +1,5 @@
-from util.input_util import URLOption, URLKind
-from util.safe_execute import OneshotExecutor, SafeExecutor, Verbosity
+from common.input_util import URLOption, URLKind
+from common.safe_execute import OneshotExecutor, SafeExecutor, Verbosity
 from youtube.core import run_yt_dlp, YTDLPOptions
 
 

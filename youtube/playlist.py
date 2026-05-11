@@ -1,15 +1,18 @@
-import json
+import re
 import typing
-import uuid
-from collections.abc import Iterable, Callable
+from collections.abc import Callable
 
-from util.default import DEFAULT
-from util.path_util import PREFERRED_FILENAME_LIMIT, sanitize_filename
-from util.safe_execute import OneshotExecutor
+from common.default import DEFAULT
+from common.path_util import PREFERRED_FILENAME_LIMIT
+from common.safe_execute import OneshotExecutor
 from youtube.core import run_yt_dlp, YTDLPOptions
+from youtube.util import simple_hash
 
 
 class __DumpPlayListExtractor(OneshotExecutor):
+    __TITLE_RE = re.compile(r'title=([\s\S]*?)(?=\nurl=)')
+    __URL_RE = re.compile(r"url=(.*)")
+
     @staticmethod
     def __info_get(info, key: str, message: str) -> typing.Any:
         value = info.get(key, DEFAULT)
@@ -17,42 +20,28 @@ class __DumpPlayListExtractor(OneshotExecutor):
             print(message)
         return value
 
-    @classmethod
-    def __extract_url_recursive(cls, info) -> Iterable[str]:
-        url_type = info.get('_type', 'video')
-        if url_type in ('playlist', 'multi_video', 'compat_list'):  # noqa
-            for video_dict in info.get('entries', []):
-                yield from cls.__extract_url_recursive(video_dict)
-        elif url_type == 'url':
-            yield info['url']
-        elif url_type == 'video':
-            yield info['webpage_url']
-        else:
-            raise ValueError(f'Invalid url type {url_type}')
-
-    def __init__(self, url: str, callback: Callable[[Iterable[str], str], None]):
+    def __init__(self, url: str, callback: Callable[[list[str], str], None]):
         super().__init__()
         self._url = url
         self._callback = callback
 
     def _execute(self):
         options = YTDLPOptions.default().copy_with(
-            '--flat-playlist',
-            '--dump-single-json',
+            '--print',
+            f'title=%(title|{simple_hash(self._url)})S',
+            '--print',
+            'url=%(webpage_url)s',
             self._url
         )
-        info = json.loads(run_yt_dlp(options, capture_stdout=True).stdout)
-        title = self.__info_get(
-            info, 'title', 'Playlist title is unavailable, use ID instead')
-        title = title or self.__info_get(
-            info, 'id', 'Playlist ID is unavailable, use random UUID instead')
-        title = title or uuid.uuid4().hex
-        # Sanitize playlist title
+        stdout = run_yt_dlp(options, capture_stdout=True).stdout_str
+        # noinspection PyUnresolvedReferences
+        title = self.__TITLE_RE.search(stdout).group(1)
+        urls = self.__URL_RE.findall(stdout)
         self._callback(
-            self.__extract_url_recursive(info),
-            sanitize_filename(title)[0:PREFERRED_FILENAME_LIMIT]
+            urls,
+            title[0:PREFERRED_FILENAME_LIMIT]
         )
 
 
-def dump_playlist(url: str, callback: Callable[[Iterable[str], str], None]):
+def dump_playlist(url: str, callback: Callable[[list[str], str], None]):
     __DumpPlayListExtractor(url, callback).execute()

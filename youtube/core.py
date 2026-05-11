@@ -1,9 +1,8 @@
-import atexit
-import os
 import subprocess
 
-from util.input_util import StrListOption, IntOption
-from util.path_util import remove_directory, PREFERRED_FILENAME_LIMIT
+from common.default import DEFAULT
+from common.input_util import StrListOption, IntOption
+from youtube.util import with_default
 
 
 class YTDLPResult:
@@ -20,10 +19,35 @@ class YTDLPResult:
 
 
 class YTDLPOptions:
-    __DEFAULT = None
+    _DEFAULT = DEFAULT
 
     def __init__(self, *args):
         self._options = list(args)
+
+    @classmethod
+    def __get_default_options(cls):
+        no_proxy = 'none'
+        proxy_type_option = StrListOption(
+            'Proxy type',
+            ('http', 'socks', 'socks5', no_proxy)
+        )
+        proxy_port_option = IntOption('Proxy port', 1, (1 << 16) - 1)
+        options = YTDLPOptions(
+            # Disable HTTP chunk size to prevent fragment download error
+            # 'http_chunk_size': 10 * 1024 * 1024,  # 10MB
+            '--no-playlist',
+            '--retries', 'infinite',
+            '--no-cache-dir',
+            # --trim-filename is buggy, so use output template to control file name limit
+            # See https://github.com/yt-dlp/yt-dlp/issues/2314
+            # See https://github.com/yt-dlp/yt-dlp/issues/1837#issuecomment-1100854653
+            '--output', f'%(title)S [%(id)S].%(ext)S'
+        )
+        proxy_type = proxy_type_option.result()
+        if proxy_type != no_proxy:
+            proxy_port = proxy_port_option.result()
+            options.append('--proxy', f'{proxy_type}://localhost:{proxy_port}')
+        return options
 
     def __copy_with(self, *new_options: str):
         options = YTDLPOptions()
@@ -46,49 +70,14 @@ class YTDLPOptions:
     def raw(self):
         return self._options
 
-    @staticmethod
-    def __init_default_options():
-        cache_root = os.path.normpath(os.path.expanduser('~/.cache'))
-
-        def remove_cache():
-            remove_directory(cache_root, True)
-
-        atexit.register(remove_cache)
-
-        no_proxy = 'none'
-        proxy_type_option = StrListOption(
-            'Proxy type',
-            ('http', 'socks', 'socks5', no_proxy)
-        )
-        proxy_port_option = IntOption('Proxy port', 1, (1 << 16) - 1)
-        options = YTDLPOptions(
-            # Disable HTTP chunk size to prevent fragment download error
-            # 'http_chunk_size': 10 * 1024 * 1024,  # 10MB
-            '--no-playlist',
-            '--retries', 'infinite',
-            '--cache-dir', cache_root,
-            # --trim-filename is buggy, so use output template to control file name limit
-            # See https://github.com/yt-dlp/yt-dlp/issues/2314
-            # See https://github.com/yt-dlp/yt-dlp/issues/1837#issuecomment-1100854653
-            '--output', f'%(title).{PREFERRED_FILENAME_LIMIT}s [%(id)s].%(ext)s'
-        )
-        proxy_type = proxy_type_option.result()
-        if proxy_type != no_proxy:
-            proxy_port = proxy_port_option.result()
-            options.append('--proxy', f'{proxy_type}://localhost:{proxy_port}')
-        return options
-
     @classmethod
     def default(cls):
-        default_options = cls.__DEFAULT
-        if default_options is None:
-            cls.__DEFAULT = default_options = cls.__init_default_options()
-        return default_options
+        return with_default(cls, cls.__get_default_options)
 
 
 def __run_yt_dlp(*options: str, capture_stdout=False):
     process = subprocess.run(
-        ('yt-dlp',) + options,
+        ('yt-dlp', '--encoding', 'utf-8') + options,
         stdout=subprocess.PIPE if capture_stdout else None,
         check=True,
     )

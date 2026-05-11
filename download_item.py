@@ -1,5 +1,5 @@
-from util.input_util import URLOption, URLKind
-from util.safe_execute import OneshotExecutor
+from common.input_util import URLOption, URLKind
+from common.safe_execute import OneshotExecutor
 from youtube.download import download
 from youtube.playlist import dump_playlist
 

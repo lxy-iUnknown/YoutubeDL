@@ -3,10 +3,7 @@ import pathlib
 import shutil
 import typing
 
-import pathvalidate
-from pathvalidate.handler import NullValueHandler
-
-from util.safe_execute import Verbosity, SafeExecutor
+from common.safe_execute import Verbosity, SafeExecutor
 
 ROOT_PATH = pathlib.Path.cwd()
 
@@ -17,7 +14,7 @@ def __preferred_filename_limit():
     if os.name == 'nt':
         import ctypes.wintypes
 
-        from util.external import Kernel32
+        from common.external import Kernel32
 
         # Windows still doesn't support create long directory even if LongPathsEnabled is set
         # For example: os.mkdir('a' * 1000)
@@ -81,13 +78,6 @@ class __RemoveDirectoryExecutor(SafeExecutor[None]):
                 raise e
         else:
             os.rmdir(self._path)
-
-
-def sanitize_filename(name: str) -> str:
-    return pathvalidate.sanitize_filename(
-        name,
-        null_value_handler=NullValueHandler.return_timestamp,
-    )
 
 
 def remove_directory(path: os.PathLike[typing.AnyStr] | typing.AnyStr,
