@@ -22,7 +22,7 @@ class YTDLPOptions:
         proxy_port_option = IntOption('Proxy port', 1, (1 << 16) - 1)
         options = YTDLPOptions(
             # Disable HTTP chunk size to prevent fragment download error
-            # 'http_chunk_size': 10 * 1024 * 1024,  # 10MB
+            '--http-chunk-size', '1M',
             '--no-playlist',
             '--retries', 'infinite',
             '--no-cache-dir',

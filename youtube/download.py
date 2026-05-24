@@ -77,7 +77,6 @@ def get_download_options():
         '--extractor-retries', 'infinite',
         '--fragment-retries', 'infinite',
         '--windows-filenames' if os.name == 'nt' else '--no-windows-filenames',
-        '--no-playlist',
     )
     download_audio = __DOWNLOAD_AUDIO.result()
     options.append('--format', f'{'bv+ba/b' if download_audio else 'bv/b'}')
