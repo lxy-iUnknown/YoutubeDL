@@ -27,6 +27,7 @@ class __DumpPlayListExtractor(OneshotExecutor):
 
     def _execute(self):
         options = YTDLPOptions.default().copy_with(
+            '--flat-playlist', # Extract URL only
             '--print',
             f'title=%(playlist_title,title|{simple_hash(self._url)})S',
             '--print',

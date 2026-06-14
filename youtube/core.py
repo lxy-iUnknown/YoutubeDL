@@ -2,7 +2,7 @@ import subprocess
 import typing
 
 from common.default import DEFAULT
-from common.input_util import StrListOption, IntOption
+from common.input_util import StrListOption, IntOption, BooleanOption
 from youtube.util import with_default
 
 
@@ -20,6 +20,7 @@ class YTDLPOptions:
             ('http', 'socks', 'socks5', no_proxy)
         )
         proxy_port_option = IntOption('Proxy port', 1, (1 << 16) - 1)
+        verbosity_option = BooleanOption('Verbose')
         options = YTDLPOptions(
             # Disable HTTP chunk size to prevent fragment download error
             '--http-chunk-size', '1M',
@@ -35,6 +36,8 @@ class YTDLPOptions:
         if proxy_type != no_proxy:
             proxy_port = proxy_port_option.result()
             options.append('--proxy', f'{proxy_type}://localhost:{proxy_port}')
+        if verbosity_option.result():
+            options.append('--verbose')
         return options
 
     def __copy_with(self, *new_options: str):
