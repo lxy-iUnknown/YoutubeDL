@@ -75,8 +75,6 @@ class _SequentialExecutor(Executor):
 
 
 class _ThreadedExecutor(Executor):
-    __MAIN_TID = threading.main_thread().ident
-
     @staticmethod
     def __is_alive(future):
         # Future.cancelled, Future.done, Future.running are BLOCKING!!!

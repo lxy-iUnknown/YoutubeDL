@@ -17,7 +17,8 @@ class YTDLPOptions:
         no_proxy = 'none'
         proxy_type_option = StrListOption(
             'Proxy type',
-            ('http', 'socks', 'socks5', no_proxy)
+            ('http', 'socks', 'socks5', no_proxy),
+            case_sensitive=False
         )
         proxy_port_option = IntOption('Proxy port', 1, (1 << 16) - 1)
         verbosity_option = BooleanOption('Verbose')

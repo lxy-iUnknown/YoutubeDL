@@ -1,10 +1,11 @@
 import os
 import subprocess
 import typing
+from subprocess import CalledProcessError
 
 from common.input_util import BooleanOption, IntOption, StrOption
 from common.path_util import ROOT_PATH, remove_directory
-from common.safe_execute import Verbosity, SafeExecutor
+from common.safe_execute import Verbosity, SafeExecutor, ExceptionHandleArgs
 from youtube.core import YTDLPOptions, run_yt_dlp
 from youtube.executor import Executor
 from youtube.util import simple_hash
@@ -29,6 +30,7 @@ def __ensure_deps():
 __ensure_deps()
 
 __SUBTITLE_SLEEP_INTERVAL = 30
+
 __DOWNLOAD_AUDIO = BooleanOption('Download audio')
 __DOWNLOAD_SUBTITLE = BooleanOption('Download subtitle')
 __SUBTITLE_LANGUAGE = StrOption("Subtitle language (can be regex, e.g. en\\S+,ja)")
@@ -50,6 +52,8 @@ class __DownloadOneArgs(typing.NamedTuple):
 
 
 class __DownloadOneExecutor(SafeExecutor[None]):
+    __MAX_RETRIES = 10
+
     def __init__(self, args: __DownloadOneArgs):
         super().__init__(Verbosity.MessageOnly, True)
         home_path = DOWNLOAD_BASE_PATH / args.title
@@ -61,14 +65,24 @@ class __DownloadOneExecutor(SafeExecutor[None]):
             '--paths', f'home:{str(home_path)}',
             '--paths', f'temp:{str(temp_path)}'
         )
+        self._error_count = 0
 
     def _execute(self):
         print(f'Downloading URL "{self._url}"')
-        run_yt_dlp(self._options.copy_with(self._url))
+        try:
+            run_yt_dlp(self._options.copy_with(self._url))
+        except CalledProcessError:
+            self._error_count += 1
+            raise
         print(f'Download URL "{self._url}" finished')
 
     def _cleanup(self):
         remove_directory(self._temp_path)
+
+    def _handle_exception(self, error: Exception, args: ExceptionHandleArgs):
+        if self._error_count >= self.__MAX_RETRIES:
+            print(f'Download URL "{self._url}" failed after {self.__MAX_RETRIES} retries')
+            args.loop = False
 
 
 def get_download_options():

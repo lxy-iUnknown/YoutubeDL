@@ -1,7 +1,7 @@
 import abc
 import enum
 
-from common.safe_execute import Verbosity, NoFailureExecutor
+from common.safe_execute import Verbosity, NoFailureExecutor, ExceptionHandleArgs
 
 
 @enum.verify(enum.UNIQUE)
@@ -41,8 +41,8 @@ class Option[T](NoFailureExecutor[T]):
             return self._convert(value)
         raise self.__Ignorable()
 
-    def _handle_error(self, error: Exception) -> bool:
-        return isinstance(error, self.__Ignorable)
+    def _handle_exception(self, error: Exception, args: ExceptionHandleArgs):
+        args.handled = isinstance(error, self.__Ignorable)
 
 
 class StrOption(Option[str]):
@@ -54,11 +54,17 @@ class StrOption(Option[str]):
 
 
 class StrListOption(Option[str]):
-    def __init__(self, name: str, values: tuple[str, ...]):
+    def __init__(self, name: str, values: tuple[str, ...], case_sensitive: bool = True):
         super().__init__(name, '/'.join(values))
-        self._values = set(values)
+        if case_sensitive:
+            self._values = set(values)
+        else:
+            self._values = set(map(str.casefold, values))
+        self._case_sensitive = case_sensitive
 
     def _convert(self, value: str):
+        if not self._case_sensitive:
+            value = value.casefold()
         if value in self._values:
             return value
         raise ValueError(f'{self._name} should be {self._description}, not "{value}"')

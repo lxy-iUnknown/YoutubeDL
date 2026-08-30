@@ -5,6 +5,13 @@ import traceback
 from warnings import deprecated
 
 
+class ExceptionHandleArgs:
+    def __init__(self, loop: bool, verbosity: Verbosity):
+        self.loop = loop
+        self.verbosity = verbosity
+        self.handled = False
+
+
 @enum.verify(enum.UNIQUE)
 class Verbosity(enum.IntEnum):
     DontShow = 0,
@@ -44,7 +51,13 @@ class SafeExecutor[T](abc.ABC):
         try:
             return Result[T](self._execute(), True)
         except Exception as e:
-            if isinstance(e, EOFError) or self._handle_error(e):
+            args = ExceptionHandleArgs(self._loop, self._verbosity)
+            if isinstance(e, EOFError):
+                pass
+            self._handle_exception(e, args)
+            self._verbosity = args.verbosity
+            self._loop = args.loop
+            if args.handled:
                 pass
             elif self._verbosity == Verbosity.MessageOnly:
                 print(e)
@@ -78,8 +91,8 @@ class SafeExecutor[T](abc.ABC):
     def _cleanup(self) -> None:
         pass
 
-    def _handle_error(self, error: Exception) -> bool:
-        return False
+    def _handle_exception(self, error: Exception, args: ExceptionHandleArgs):
+        pass
 
 
 class OneshotExecutor(SafeExecutor[None]):
